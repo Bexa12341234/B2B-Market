@@ -1,0 +1,1 @@
+UPDATE User SET password = '$2b$10$OTDn7eCLtwoEsEwLf7GQwOEOLdecdb9GZD7l6QfSf7ZcG.YIT3X9G';

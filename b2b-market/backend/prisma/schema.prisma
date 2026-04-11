@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// In SQLite, Enums are not supported, so we will use plain strings
+// and handle validation in the application logic.
+
+model User {
+  id        Int      @id @default(autoincrement())
+  phone     String   @unique
+  password  String
+  role      String   // "ADMIN", "SUPPLIER", "RETAIL"
+  name      String
+  
+  // Location/Address
+  address   String?
+  
+  // Segment for Retail
+  segmentId Int?
+  segment   Segment? @relation(fields: [segmentId], references: [id])
+  
+  // Supplier's products
+  products  Product[]
+  
+  // Orders
+  orders    Order[]   @relation("RetailOrders")
+  
+  // Orders for Supplier (viewing)
+  supplierOrderItems OrderItem[] @relation("SupplierOrderItems")
+
+  // POS Sessions for Retail
+  posSessions POSSession[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Segment {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  users    User[]
+  products Product[] // Many to many
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id             Int         @id @default(autoincrement())
+  name           String
+  description    String?
+  imageUrl       String?
+  brand          String?
+  basePrice      Float
+  
+  segments       Segment[]
+  
+  category   Category  @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  
+  supplier   User      @relation(fields: [supplierId], references: [id])
+  supplierId Int
+  
+  orderItems OrderItem[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id           Int      @id @default(autoincrement())
+  retail       User     @relation("RetailOrders", fields: [retailId], references: [id])
+  retailId     Int
+  
+  status       String   @default("pending") // pending, confirmed, cancelled
+  paymentType  String   // cash, terminal, transfer
+  
+  items        OrderItem[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model OrderItem {
+  id         Int     @id @default(autoincrement())
+  order      Order   @relation(fields: [orderId], references: [id])
+  orderId    Int
+  
+  product    Product @relation(fields: [productId], references: [id])
+  productId  Int
+  
+  supplier   User    @relation("SupplierOrderItems", fields: [supplierId], references: [id])
+  supplierId Int
+  
+  quantity   Int
+  price      Float
+}
+
+model POSSession {
+  id        Int      @id @default(autoincrement())
+  retail    User     @relation(fields: [retailId], references: [id])
+  retailId  Int
+  
+  items     POSItem[]
+  createdAt DateTime @default(now())
+}
+
+model POSItem {
+  id          Int        @id @default(autoincrement())
+  session     POSSession @relation(fields: [sessionId], references: [id])
+  sessionId   Int
+  
+  productId   Int?
+  productName String
+  quantity    Int
+  costPrice   Float      @default(0) // What the retailer paid
+  price       Float      // What the retailer sold it for
+  total       Float
+}
